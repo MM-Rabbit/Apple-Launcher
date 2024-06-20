@@ -110,6 +110,8 @@ def main() -> None:
     logging.debug('[Window]: 窗体循环启动')
     # TODO: 启动器的主方法
 
+    # ...
+
     # 主函数实际程序块结束
 
 
