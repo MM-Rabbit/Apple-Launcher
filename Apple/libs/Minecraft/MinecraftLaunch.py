@@ -3,6 +3,7 @@ import os
 from os.path import join, exists
 import zipfile
 import logging
+import subprocess
 
 logging.basicConfig(level=logging.INFO,
                                     format='[%(asctime)s][%(levelname)s]%(message)s', encoding="utf-8")
@@ -94,35 +95,36 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
 
         if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
             # 将包含artifact键的库解压到natives临时文件夹
-            for lib in ver_json["libraries"]:
-                if "classifiers" in lib["downloads"]:
-                    for n in lib["downloads"]:  # 直接将全平台的库都解压了，懒得做平台检测了
-                        if n == "artifact":
-                            dic_path = f"{appdata}/versions/{ver}/{ver}-natives"  # natives临时文件夹路径
-                            file_path = f"{appdata}/libraries/{lib['downloads'][n]['path']}"  # 库
-                            unzip(file_path, dic_path)
-                        elif n == "classifiers":
-                            for native in lib["downloads"][n].values():
-                                dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
-                                file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
+            try:
+                for lib in ver_json["libraries"]:
+                    if "classifiers" in lib["downloads"]:
+                        for n in lib["downloads"]:  # 直接将全平台的库都解压了，懒得做平台检测了
+                            if n == "artifact":
+                                dic_path = f"{appdata}/versions/{ver}/{ver}-natives"  # natives临时文件夹路径
+                                file_path = f"{appdata}/libraries/{lib['downloads'][n]['path']}"  # 库
                                 unzip(file_path, dic_path)
-        else:  # 旧版json（< 1.13）
-            for lib in ver_json["libraries"]:
-                if "classifiers" in lib:
-                    for n in lib:  # 直接将全平台的库都解压了，懒得做平台检测了
-                        if n == "artifact":
-                            dic_path = f"{appdata}/versions/{ver}/{ver}-natives"  # natives临时文件夹路径
-                            file_path = f"{appdata}/libraries/{lib['downloads'][n]['path']}"  # 库
-                            unzip(file_path, dic_path)
-                        elif n == "classifiers":
-                            for native in lib["downloads"][n].values():
-                                dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
-                                file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
+                            elif n == "classifiers":
+                                for native in lib["downloads"][n].values():
+                                    dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
+                                    file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
+                                    unzip(file_path, dic_path)
+            except Exception:
+                for lib in ver_json["libraries"]:
+                    if "classifiers" in lib:
+                        for n in lib:  # 直接将全平台的库都解压了，懒得做平台检测了
+                            if n == "artifact":
+                                dic_path = f"{appdata}/versions/{ver}/{ver}-natives"  # natives临时文件夹路径
+                                file_path = f"{appdata}/libraries/{lib['downloads'][n]['path']}"  # 库
                                 unzip(file_path, dic_path)
+                            elif n == "classifiers":
+                                for native in lib["downloads"][n].values():
+                                    dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
+                                    file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
+                                    unzip(file_path, dic_path)
 
         jvm: str = '"' + java_path + '" -XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow ' \
                                  '-Dfml.ignoreInvalidMinecraftCertificates=True -Dfml.ignorePatchDiscrepancies=True ' \
-                                 '-Dlog4j2.formatMsgNoLookups=true'
+                                 '-Dlog4j2.formatMsgNoLookups=true '
 
         if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
             for arg in ver_json['arguments']['jvm']:
@@ -191,21 +193,25 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
                 except Exception:
                     pass
 
-        classpath = set(splitting_string_into_list_by_char(classpath, ';'))
-        cp: str = ''
+        classpath = splitting_string_into_list_by_char(classpath, ';')
+        n_classpath: list[str] = []
         for c in classpath:
+            if c not in n_classpath:
+                n_classpath.append(c)
+        cp: str = ''
+        for c in n_classpath:
             cp += f"{c};"
-            print(cp)
+
         cp = cp.replace('"', '')
-        classpath = '"' + cp.lstrip(';')
+        classpath = '"' + cp.strip(';')
 
         # 将客户端文件传入-cp参数
-        classpath = classpath + f"{appdata}/versions/{ver}/{ver}.jar\""
+        classpath = classpath + f";{appdata}/versions/{ver}/{ver}.jar\""
         jvm = jvm.replace("-cp ", "")
         jvm += '-cp '
         # 设置最大运行内存
         jvm += ("" + classpath + f" -Xmn{str(int(xmx.replace('m', '')) / 4).replace('.', '').replace('0', '') + 'm'}"
-                + " -Xmx" + xmx + ' -Xmn256m -Dlog4j.formatMsgNoLookups=true ')
+                + " -Xmx" + xmx + ' -Dlog4j.formatMsgNoLookups=true ')
 
         logging.info(f'[Launch]: JVM参数拼接完成')
 
@@ -224,14 +230,14 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         except Exception:
             mc_args += ver_json["minecraftArguments"]
         mc_args = mc_args.replace("${auth_player_name}", username)  # 玩家名称
-        mc_args = mc_args.replace("${version_name}", ver)  # 版本名称
+        mc_args = mc_args.replace("${version_name}", f"\"{ver}\"")  # 版本名称
         mc_args = mc_args.replace("${game_directory}", '"' + appdata + '"')  # mc路径
         mc_args = mc_args.replace("${assets_root}", '"' + appdata + "\\assets\"")  # 资源文件路径
         mc_args = mc_args.replace("${game_assets}", '"' + appdata + "\\assets\"")  # 旧版资源文件路径
         mc_args = mc_args.replace("${assets_index_name}", ver_json["assetIndex"]["id"])  # 资源索引文件名称
         mc_args = mc_args.replace("${auth_uuid}", uuid)  # 没写微软登录,uuid空填
         mc_args = mc_args.replace("${auth_access_token}", access_token)  # 同上
-        mc_args = mc_args.replace("${clientid}", ver)  # 客户端id
+        mc_args = mc_args.replace("${clientid}", f"\"{ver}\"")  # 客户端id
         mc_args = mc_args.replace("${auth_xuid}", "{}")  # 离线登录,不填
         mc_args = mc_args.replace("${user_type}", "msa")  # 用户类型,离线模式是Legacy
         mc_args = mc_args.replace("${version_type}", ver_json["type"])  # 版本类型
@@ -248,14 +254,22 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
 
         logging.info(f'[Launch]: 新版Game参数拼接完成')
         logging.info('[Launch]: 启动参数拼接完成')
-        final_arg = (jvm + mc_args).replace("-cp-cp", "-cp")
+        final_arg = (jvm + mc_args).replace("-cp-cp", "-cp")\
+                                   .replace("  -cp", " -cp")\
+                                   .replace(";;", ";")\
+                                   .replace("  ", " ")\
+                                   .replace("-DFabricMcEmu= ", "-DFabricMcEmu=")
         with open("Launch.bat", 'w') as l:
             l.write(final_arg)
-        os.system("start /b .\\Launch.bat")
+        process = subprocess.run("Launch.bat", capture_output=True, text=True)
+        if process.returncode == 0:
+            logging.info("[Launch]: Minecraft正常退出")
+        else:
+            logging.warning(f"[Launch]: Minecraft非正常退出，状态码为：{process.returncode}")
         return final_arg
     else:
         return -1
 
-print(launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "rd-132211",
-          "I:\\Java\\bin\\javaw.exe", "1024m",
-          "114514", "FFFF", "FFFF"))
+launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Fabric 0.14.19",
+          "J:\\xixide\\openjdk-17+35_windows-x64_bin\\jdk-17\\bin\\javaw.exe", "4096m",
+          "114514", "FFFF", "FFFF")
