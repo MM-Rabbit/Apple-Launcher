@@ -47,19 +47,33 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         ver_json = json.loads(ver_json_f.read())
         ver_json_f.close()
 
-        # 将包含artifact键的库解压到natives临时文件夹
-        for lib in ver_json["libraries"]:
-            if "classifiers" in lib["downloads"]:
-                for n in lib["downloads"]:  # 直接将全平台的库都解压了，懒得做平台检测了
-                    if n == "artifact":
-                        dic_path = f"{appdata}/versions/{ver}/{ver}-natives"  # natives临时文件夹路径
-                        file_path = f"{appdata}/libraries/{lib['downloads'][n]['path']}"  # 库
-                        unzip(file_path, dic_path)
-                    elif n == "classifiers":
-                        for native in lib["downloads"][n].values():
-                            dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
-                            file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
+        if "arguments" in ver_json:  # 新版json（>= 1.13）
+            # 将包含artifact键的库解压到natives临时文件夹
+            for lib in ver_json["libraries"]:
+                if "classifiers" in lib["downloads"]:
+                    for n in lib["downloads"]:  # 直接将全平台的库都解压了，懒得做平台检测了
+                        if n == "artifact":
+                            dic_path = f"{appdata}/versions/{ver}/{ver}-natives"  # natives临时文件夹路径
+                            file_path = f"{appdata}/libraries/{lib['downloads'][n]['path']}"  # 库
                             unzip(file_path, dic_path)
+                        elif n == "classifiers":
+                            for native in lib["downloads"][n].values():
+                                dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
+                                file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
+                                unzip(file_path, dic_path)
+        else:  # 旧版json（< 1.13）
+            for lib in ver_json["libraries"]:
+                if "classifiers" in lib:
+                    for n in lib:  # 直接将全平台的库都解压了，懒得做平台检测了
+                        if n == "artifact":
+                            dic_path = f"{appdata}/versions/{ver}/{ver}-natives"  # natives临时文件夹路径
+                            file_path = f"{appdata}/libraries/{lib['downloads'][n]['path']}"  # 库
+                            unzip(file_path, dic_path)
+                        elif n == "classifiers":
+                            for native in lib["downloads"][n].values():
+                                dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
+                                file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
+                                unzip(file_path, dic_path)
         jvm: str = '"' + java_path + '" -XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow ' \
                                  '-Dfml.ignoreInvalidMinecraftCertificates=True -Dfml.ignorePatchDiscrepancies=True ' \
                                  '-Dlog4j2.formatMsgNoLookups=true'
@@ -77,7 +91,7 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
             jvm += '-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump ' + \
                    '-Dos.name="Windows 10" -Dos.version=10.0 -Djava.library.path="' + \
                    f"{appdata}/versions/{ver}/{ver}-natives" + \
-                   f'" -Dminecraft.launcher.brand={launcher} ' + \
+                   f'" -Dminecraft.launcher.brand=Python ' + \
                    f'-Dminecraft.launcher.version={launcher_version} -cp'
 
         jvm = jvm.replace("${natives_directory}", f"\"{appdata}/versions/{ver}/{ver}-natives\"")
@@ -88,34 +102,39 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         jvm = jvm.replace("-Dos.name=Windows 10", "-Dos.name=\"Windows 10\"")
 
         classpath = '"'
+
         for libraries in ver_json['libraries']:
-            if not 'classifiers' in libraries['downloads']:
-                normal_lib_path = join(
-                    join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
-                if exists('C:\\Program Files (x86)'):  # 64位操作系统
-                    if "3.2.1" in normal_lib_path:
-                        continue
-                    else:
-                        classpath += normal_lib_path + ";"
-                else:  # 32位操作系统
-                    if "3.2.2" in normal_lib_path:
-                        continue
-                    else:
-                        classpath += normal_lib_path + ";"
-
-        if 'net.minecraftforge' in ver_json['arguments']['game']:
-            if exists(appdata + "\\versions\\" + version + "\\mods"):
-                # 要搜索的目录路径
-                directory = appdata + "\\versions\\" + version + "\\mods"
-
-                # 要搜索的文件后缀
-                suffix = '.jar'
-
-                # 列出目录下的所有文件
-                files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
-
-                # 过滤出具有指定后缀的文件
-                files_with_suffix = [f for f in files if os.path.splitext(f)[1] == suffix]
+            try:
+                if not 'classifiers' in libraries['downloads']:
+                    normal_lib_path = join(
+                        join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
+                    if exists('C:\\Program Files (x86)'):  # 64位操作系统
+                        if "3.2.1" in normal_lib_path:
+                            continue
+                        else:
+                            classpath += normal_lib_path + ";"
+                    else:  # 32位操作系统
+                        if "3.2.2" in normal_lib_path:
+                            continue
+                        else:
+                            classpath += normal_lib_path + ";"
+            except Exception:
+                try:
+                    if not 'classifiers' in libraries:
+                        normal_lib_path = join(
+                            join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
+                        if exists('C:\\Program Files (x86)'):  # 64位操作系统
+                            if "3.2.1" in normal_lib_path:
+                                continue
+                            else:
+                                classpath += normal_lib_path + ";"
+                        else:  # 32位操作系统
+                            if "3.2.2" in normal_lib_path:
+                                continue
+                            else:
+                                classpath += normal_lib_path + ";"
+                except Exception:
+                    pass
 
         # 将客户端文件传入-cp参数
         classpath = classpath + f"{appdata}/versions/{ver}/{ver}.jar\""
@@ -129,15 +148,18 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
 
         mc_args = ''
         mc_args += ver_json["mainClass"] + " "
-        for arg in ver_json["arguments"]["game"]:
-            if isinstance(arg, str):
-                mc_args += arg + " "
-            elif isinstance(arg, dict):  # 无论是什么，只要是在大括号里括着的，都被python认为是字典类型
-                if isinstance(arg["value"], list):
-                    for a in arg["value"]:
-                        mc_args += a + " "
-                elif isinstance(arg["value"], str):
-                    mc_args += arg["value"] + " "
+        try:
+            for arg in ver_json["arguments"]["game"]:
+                if isinstance(arg, str):
+                    mc_args += arg + " "
+                elif isinstance(arg, dict):  # 无论是什么，只要是在大括号里括着的，都被python认为是字典类型
+                    if isinstance(arg["value"], list):
+                        for a in arg["value"]:
+                            mc_args += a + " "
+                    elif isinstance(arg["value"], str):
+                        mc_args += arg["value"] + " "
+        except Exception:
+            mc_args += ver_json["minecraftArguments"]
         mc_args = mc_args.replace("${auth_player_name}", username)  # 玩家名称
         mc_args = mc_args.replace("${version_name}", ver)  # 版本名称
         mc_args = mc_args.replace("${game_directory}", '"' + appdata + '"')  # mc路径
@@ -160,10 +182,14 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
 
         logging.info(f'[Launch]: 新版Game参数拼接完成')
         logging.info('[Launch]: 启动参数拼接完成')
-        return jvm + mc_args
+        final_arg = (jvm + mc_args).replace("-cp-cp", "-cp")
+        with open("Launch.bat", 'w') as l:
+            l.write(final_arg)
+        # os.system("start Launch.bat")
+        return final_arg
     else:
         return -1
 
-print(launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5",
-          "J:\\xixide\\openjdk-17+35_windows-x64_bin\\jdk-17\\bin\\javaw.exe", "1024m", "114514", "Legacy",
-          "{}"))
+print(launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.12.2",
+          "I:\\Java\\bin\\javaw.exe", "1024m",
+          "114514", "FFFF", "FFFF"))
