@@ -16,6 +16,19 @@ def unzip(file: str, to_path: str) -> None:  # 解压文件的函数
         return None
 
 
+def splitting_string_into_list_by_char(string: str, character: str):
+    return_list: list[str] = []
+    char1: str = ''
+    for char in string:
+        if char == character:
+            return_list.append(char1)
+            char1 = ''
+        else:
+            char1 += char
+    return_list.append(char1)
+    return return_list
+
+
 def is_found_ver(ver: str, appdata: str) -> bool:  # 检查版本是否存在
     if os.path.exists(f"{appdata}/versions/{ver}/{ver}.json"):
         return True
@@ -103,38 +116,16 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
 
         classpath = '"'
 
-        for libraries in ver_json['libraries']:
-            try:
-                if not 'classifiers' in libraries['downloads']:
-                    normal_lib_path = join(
-                        join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
-                    if exists('C:\\Program Files (x86)'):  # 64位操作系统
-                        if "3.2.1" in normal_lib_path:
-                            continue
-                        else:
-                            classpath += normal_lib_path + ";"
-                    else:  # 32位操作系统
-                        if "3.2.2" in normal_lib_path:
-                            continue
-                        else:
-                            classpath += normal_lib_path + ";"
-            except Exception:
-                try:
-                    if not 'classifiers' in libraries:
-                        normal_lib_path = join(
-                            join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
-                        if exists('C:\\Program Files (x86)'):  # 64位操作系统
-                            if "3.2.1" in normal_lib_path:
-                                continue
-                            else:
-                                classpath += normal_lib_path + ";"
-                        else:  # 32位操作系统
-                            if "3.2.2" in normal_lib_path:
-                                continue
-                            else:
-                                classpath += normal_lib_path + ";"
-                except Exception:
-                    pass
+        for library in ver_json['libraries']:
+            lib_list = splitting_string_into_list_by_char(library["name"], ':')
+            f_path = splitting_string_into_list_by_char(lib_list[0], '.')
+            final_path = ''
+            for p in f_path:
+                final_path += f"{p}/"
+            final_path += lib_list[1] + '/' + lib_list[2] + '/' + f"{lib_list[1]}-{lib_list[2]}.jar"
+            classpath += f"{appdata}/libraries/{final_path};"
+            print(final_path)
+
 
         # 将客户端文件传入-cp参数
         classpath = classpath + f"{appdata}/versions/{ver}/{ver}.jar\""
