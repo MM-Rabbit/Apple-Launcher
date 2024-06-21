@@ -150,20 +150,32 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
 
         classpath = '"'
 
-        if is_forge_ver(f"{appdata}/versions/{ver}/{ver}.json"):
-            for library in ver_json['libraries']:  # 某个Forge tm把json格式改了，我说怎么启动不了，上网一搜才知道，现在重写的是适配
-                lib_list = splitting_string_into_list_by_char(library["name"], ':')
-                f_path = splitting_string_into_list_by_char(lib_list[0], '.')
-                final_path = ''
-                for p in f_path:
-                    final_path += f"{p}/"
-                final_path += lib_list[1] + '/' + lib_list[2] + '/' + f"{lib_list[1]}-{lib_list[2]}.jar"
-                classpath += f"{appdata}/libraries/{final_path};"
-                print(final_path)
-        else:
-            for libraries in ver_json['libraries']:
+        for library in ver_json['libraries']:  # 某个Forge tm把json格式改了，我说怎么启动不了，上网一搜才知道，现在重写的是适配
+            lib_list = splitting_string_into_list_by_char(library["name"], ':')
+            f_path = splitting_string_into_list_by_char(lib_list[0], '.')
+            final_path = ''
+            for p in f_path:
+                final_path += f"{p}/"
+            final_path += lib_list[1] + '/' + lib_list[2] + '/' + f"{lib_list[1]}-{lib_list[2]}.jar"
+            classpath += f"{appdata}/libraries/{final_path};"
+        for libraries in ver_json['libraries']:
+            try:
+                if not 'classifiers' in libraries['downloads']:
+                    normal_lib_path = join(
+                        join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
+                    if exists('C:\\Program Files (x86)'):  # 64位操作系统
+                        if "3.2.1" in normal_lib_path:
+                            continue
+                        else:
+                            classpath += normal_lib_path + ";"
+                    else:  # 32位操作系统
+                        if "3.2.2" in normal_lib_path:
+                            continue
+                        else:
+                            classpath += normal_lib_path + ";"
+            except Exception:
                 try:
-                    if not 'classifiers' in libraries['downloads']:
+                    if not 'classifiers' in libraries:
                         normal_lib_path = join(
                             join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
                         if exists('C:\\Program Files (x86)'):  # 64位操作系统
@@ -177,22 +189,15 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
                             else:
                                 classpath += normal_lib_path + ";"
                 except Exception:
-                    try:
-                        if not 'classifiers' in libraries:
-                            normal_lib_path = join(
-                                join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
-                            if exists('C:\\Program Files (x86)'):  # 64位操作系统
-                                if "3.2.1" in normal_lib_path:
-                                    continue
-                                else:
-                                    classpath += normal_lib_path + ";"
-                            else:  # 32位操作系统
-                                if "3.2.2" in normal_lib_path:
-                                    continue
-                                else:
-                                    classpath += normal_lib_path + ";"
-                    except Exception:
-                        pass
+                    pass
+
+        classpath = set(splitting_string_into_list_by_char(classpath, ';'))
+        cp: str = ''
+        for c in classpath:
+            cp += f"{c};"
+            print(cp)
+        cp = cp.replace('"', '')
+        classpath = '"' + cp.lstrip(';')
 
         # 将客户端文件传入-cp参数
         classpath = classpath + f"{appdata}/versions/{ver}/{ver}.jar\""
@@ -222,6 +227,7 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         mc_args = mc_args.replace("${version_name}", ver)  # 版本名称
         mc_args = mc_args.replace("${game_directory}", '"' + appdata + '"')  # mc路径
         mc_args = mc_args.replace("${assets_root}", '"' + appdata + "\\assets\"")  # 资源文件路径
+        mc_args = mc_args.replace("${game_assets}", '"' + appdata + "\\assets\"")  # 旧版资源文件路径
         mc_args = mc_args.replace("${assets_index_name}", ver_json["assetIndex"]["id"])  # 资源索引文件名称
         mc_args = mc_args.replace("${auth_uuid}", uuid)  # 没写微软登录,uuid空填
         mc_args = mc_args.replace("${auth_access_token}", access_token)  # 同上
@@ -233,6 +239,8 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         mc_args = mc_args.replace("${resolution_height}", height)  # 窗口高度
         mc_args = mc_args.replace("-demo ", "")  # 去掉-demo参数，退出试玩版
         mc_args = mc_args.replace("---width", "--width")  # 可能多了一个短横线，给它去掉
+        mc_args = mc_args.replace("${auth_session}", access_token)  # accessToken
+        mc_args = mc_args.replace("${auth_session}", "")
         mc_args = mc_args.replace("--quickPlayPath ${quickPlayPath}", "").replace(
             "--quickPlaySingleplayer ${quickPlaySingleplayer}", "")
         mc_args = mc_args.replace("--quickPlayMultiplayer ${quickPlayMultiplayer}", "").replace(
@@ -248,6 +256,6 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
     else:
         return -1
 
-# print(launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5",
-#           "I:\\Java\\bin\\javaw.exe", "1024m",
-#           "114514", "FFFF", "FFFF"))
+print(launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "rd-132211",
+          "I:\\Java\\bin\\javaw.exe", "1024m",
+          "114514", "FFFF", "FFFF"))
