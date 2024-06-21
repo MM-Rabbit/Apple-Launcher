@@ -16,7 +16,7 @@ def unzip(file: str, to_path: str) -> None:  # 解压文件的函数
         return None
 
 
-def splitting_string_into_list_by_char(string: str, character: str):
+def splitting_string_into_list_by_char(string: str, character: str) -> list[str]:  # 把传入的字符串按照某个字符分割成一个列表
     return_list: list[str] = []
     char1: str = ''
     for char in string:
@@ -29,6 +29,38 @@ def splitting_string_into_list_by_char(string: str, character: str):
     return return_list
 
 
+def is_new_json_f(ver_json_path: str) -> bool:  # 判断一个版本json文件是不是新格式
+    try:
+        with open(ver_json_path) as j:
+            ver_json = json.loads(j.read())
+        if "arguments" in ver_json:  # 新版json（>= 1.13）
+            return True
+        else:  # 旧版json（< 1.13）
+            return False
+    except UnicodeDecodeError:
+        return -1
+
+
+def is_forge_ver(ver_json_path: str) -> bool:  # 判断一个版本是不是安装了Forge
+    try:
+        with open(ver_json_path) as j:
+            ver_j = json.loads(j.read())
+        if is_new_json_f(ver_json_path):
+            logging.info('[Launch]: Json格式为新版格式')
+            if "net.minecraftforge" in ver_j["arguments"]["game"]:
+                return True
+            else:
+                return False
+        else:
+            logging.info('[Launch]: Json格式为旧版格式')
+            if "net.minecraftforge.fml.common.launcher.FMLTweaker" in ver_j["minecraftArguments"]:
+                return True
+            else:
+                return False
+    except UnicodeDecodeError:
+        return -1
+
+
 def is_found_ver(ver: str, appdata: str) -> bool:  # 检查版本是否存在
     if os.path.exists(f"{appdata}/versions/{ver}/{ver}.json"):
         return True
@@ -36,8 +68,8 @@ def is_found_ver(ver: str, appdata: str) -> bool:  # 检查版本是否存在
         return False
 
 
-def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx: str, username: str, uuid: str, access_token: str,
-              width: str="873", height: str="501"):  # 启动mc
+def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx: str, username: str, uuid: str,
+              access_token: str, width: str="873", height: str="501"):  # 启动mc
     # 初始化
     command: str = ""  # 启动命令行
     jvm: str = java_path  # JVM参数
@@ -46,13 +78,13 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
     logging.info('[Launch]: 已初始化启动参数')
 
     if (
-        java_path != "" and
-        ver != "" and
-        xmx != "" and
-        username != "" and
-        appdata != "" and
-        uuid != "" and
-        access_token != ""
+            java_path != "" and
+            ver != "" and
+            xmx != "" and
+            username != "" and
+            appdata != "" and
+            uuid != "" and
+            access_token != ""
     ):  # 启动前检查参数
 
         if not is_found_ver(ver, appdata): return -1
@@ -60,7 +92,7 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         ver_json = json.loads(ver_json_f.read())
         ver_json_f.close()
 
-        if "arguments" in ver_json:  # 新版json（>= 1.13）
+        if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
             # 将包含artifact键的库解压到natives临时文件夹
             for lib in ver_json["libraries"]:
                 if "classifiers" in lib["downloads"]:
@@ -87,10 +119,12 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
                                 dic_path = f"{appdata}/versions/{ver}/{ver}-natives"
                                 file_path = f"{appdata}/libraries/{native['path']}"  # classifiers' path（突然发癫（）
                                 unzip(file_path, dic_path)
+
         jvm: str = '"' + java_path + '" -XX:+UseG1GC -XX:-UseAdaptiveSizePolicy -XX:-OmitStackTraceInFastThrow ' \
                                  '-Dfml.ignoreInvalidMinecraftCertificates=True -Dfml.ignorePatchDiscrepancies=True ' \
                                  '-Dlog4j2.formatMsgNoLookups=true'
-        if "arguments" in ver_json:  # 新版json（>= 1.13）
+
+        if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
             for arg in ver_json['arguments']['jvm']:
                 if isinstance(arg, str):
                     jvm += arg + " "
@@ -116,16 +150,49 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
 
         classpath = '"'
 
-        for library in ver_json['libraries']:
-            lib_list = splitting_string_into_list_by_char(library["name"], ':')
-            f_path = splitting_string_into_list_by_char(lib_list[0], '.')
-            final_path = ''
-            for p in f_path:
-                final_path += f"{p}/"
-            final_path += lib_list[1] + '/' + lib_list[2] + '/' + f"{lib_list[1]}-{lib_list[2]}.jar"
-            classpath += f"{appdata}/libraries/{final_path};"
-            print(final_path)
-
+        if is_forge_ver(f"{appdata}/versions/{ver}/{ver}.json"):
+            for library in ver_json['libraries']:  # 某个Forge tm把json格式改了，我说怎么启动不了，上网一搜才知道，现在重写的是适配
+                lib_list = splitting_string_into_list_by_char(library["name"], ':')
+                f_path = splitting_string_into_list_by_char(lib_list[0], '.')
+                final_path = ''
+                for p in f_path:
+                    final_path += f"{p}/"
+                final_path += lib_list[1] + '/' + lib_list[2] + '/' + f"{lib_list[1]}-{lib_list[2]}.jar"
+                classpath += f"{appdata}/libraries/{final_path};"
+                print(final_path)
+        else:
+            for libraries in ver_json['libraries']:
+                try:
+                    if not 'classifiers' in libraries['downloads']:
+                        normal_lib_path = join(
+                            join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
+                        if exists('C:\\Program Files (x86)'):  # 64位操作系统
+                            if "3.2.1" in normal_lib_path:
+                                continue
+                            else:
+                                classpath += normal_lib_path + ";"
+                        else:  # 32位操作系统
+                            if "3.2.2" in normal_lib_path:
+                                continue
+                            else:
+                                classpath += normal_lib_path + ";"
+                except Exception:
+                    try:
+                        if not 'classifiers' in libraries:
+                            normal_lib_path = join(
+                                join(appdata, "libraries"), libraries['downloads']['artifact']['path'])
+                            if exists('C:\\Program Files (x86)'):  # 64位操作系统
+                                if "3.2.1" in normal_lib_path:
+                                    continue
+                                else:
+                                    classpath += normal_lib_path + ";"
+                            else:  # 32位操作系统
+                                if "3.2.2" in normal_lib_path:
+                                    continue
+                                else:
+                                    classpath += normal_lib_path + ";"
+                    except Exception:
+                        pass
 
         # 将客户端文件传入-cp参数
         classpath = classpath + f"{appdata}/versions/{ver}/{ver}.jar\""
@@ -176,11 +243,11 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         final_arg = (jvm + mc_args).replace("-cp-cp", "-cp")
         with open("Launch.bat", 'w') as l:
             l.write(final_arg)
-        # os.system("start Launch.bat")
+        os.system("start /b .\\Launch.bat")
         return final_arg
     else:
         return -1
 
-print(launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.12.2",
-          "I:\\Java\\bin\\javaw.exe", "1024m",
-          "114514", "FFFF", "FFFF"))
+# print(launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5",
+#           "I:\\Java\\bin\\javaw.exe", "1024m",
+#           "114514", "FFFF", "FFFF"))
