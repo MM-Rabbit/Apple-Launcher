@@ -85,15 +85,15 @@ def get_forge_ver(ver_json_path: str):
         return -1
 
 
-def get_fabric_ver():
+def get_fabric_ver(ver_json_path: str):
     try:
         with open(ver_json_path) as j:
             ver_j = json.loads(j.read())
         if is_new_json_f(ver_json_path):
             logging.info('[Launch]: Json格式为新版格式')
-            for a in ver_j["libraries"]["name"]:
-                if "net.fabricmc:fabric-loader:" in a:
-                    return splitting_string_into_list_by_char(a, ":")[2]
+            for a in ver_j["libraries"]:
+                if "net.fabricmc:fabric-loader:" in a["name"]:
+                    return splitting_string_into_list_by_char(a["name"], ":")[2]
         else:
             logging.info('[Launch]: Json格式为旧版格式')
             return -1
@@ -110,8 +110,7 @@ def is_fabric_ver(ver_json_path: str) -> bool:  # 判断一个版本是不是安
             for a in ver_j["arguments"]["jvm"]:
                 if "FabricMc" in a:
                     return True
-                else:
-                    return False
+            return False
         else:
             logging.info('[Launch]: Json格式为旧版格式')
             return False  # 开玩笑，1.13以前有Fabric吗？
@@ -363,6 +362,6 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
     else:
         return -1
 
-launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Forge_36.2.34",
+launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Fabric 0.14.19",
           "J:\\xixide\\openjdk-17+35_windows-x64_bin\\jdk-17\\bin\\javaw.exe", "4096m",
           "114514", "FFFF", "FFFF")
