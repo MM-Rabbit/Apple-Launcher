@@ -285,8 +285,18 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
             else:  # 32位操作系统
                 if "3.2.2" in c:
                     n_classpath.remove(c)
-        cp: str = ''
         for c in n_classpath:
+            if "2.15.0" in c:
+                log4j2_15_0 = True
+                break
+        classpath = n_classpath.copy()
+        if log4j2_15_0:
+            for c in n_classpath:
+                if "2.8.1" in c:
+                    print(c)
+                    classpath.remove(c)
+        cp: str = ''
+        for c in classpath:
             cp += f"{c};"
 
         cp = cp.replace('"', '')
@@ -363,6 +373,6 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         return -1
 
 
-launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Fabric 0.14.19",
+launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Forge_36.2.34",
           "J:\\xixide\\openjdk-17+35_windows-x64_bin\\jdk-17\\bin\\javaw.exe", "4096m",
           "114514", "FFFF", "FFFF")
