@@ -62,6 +62,45 @@ def is_forge_ver(ver_json_path: str) -> bool:  # 判断一个版本是不是安�
         return -1
 
 
+def get_forge_ver(ver_json_path: str):
+    try:
+        with open(ver_json_path) as j:
+            ver_j = json.loads(j.read())
+        if is_new_json_f(ver_json_path):
+            logging.info('[Launch]: Json格式为新版格式')
+            active: bool = False
+            for a in ver_j["arguments"]["game"]:
+                if active:
+                    return a
+                else:
+                    if "--fml.forgeVersion" in a:
+                        active = True
+                        continue
+        else:
+            logging.info('[Launch]: Json格式为旧版格式')
+            for a in ver_j["patches"]:
+                if "forge" in a["id"]:
+                    return a["version"]
+    except UnicodeDecodeError:
+        return -1
+
+
+def get_fabric_ver():
+    try:
+        with open(ver_json_path) as j:
+            ver_j = json.loads(j.read())
+        if is_new_json_f(ver_json_path):
+            logging.info('[Launch]: Json格式为新版格式')
+            for a in ver_j["libraries"]["name"]:
+                if "net.fabricmc:fabric-loader:" in a:
+                    return splitting_string_into_list_by_char(a, ":")[2]
+        else:
+            logging.info('[Launch]: Json格式为旧版格式')
+            return -1
+    except UnicodeDecodeError:
+        return -1
+
+
 def is_fabric_ver(ver_json_path: str) -> bool:  # 判断一个版本是不是安装了Fabric
     try:
         with open(ver_json_path) as j:
@@ -87,6 +126,20 @@ def is_found_ver(ver: str, appdata: str) -> bool:  # 检查版本是否存在
         return False
 
 
+def get_version_id(ver_json_path: str):
+    try:
+        with open(ver_json_path) as j:
+            ver_j = json.loads(j.read())
+        if is_new_json_f(ver_json_path):
+            logging.info('[Launch]: Json格式为新版格式')
+            return ver_j["clientVersion"]
+        else:
+            logging.info('[Launch]: Json格式为旧版格式')
+            return ver_j["id"]
+    except UnicodeDecodeError:
+        return -1
+
+
 def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx: str, username: str, uuid: str,
               access_token: str, width: str="873", height: str="501"):  # 启动mc
     # 初始化
@@ -110,6 +163,16 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         ver_json_f = open(f"{appdata}/versions/{ver}/{ver}.json", 'r')
         ver_json = json.loads(ver_json_f.read())
         ver_json_f.close()
+
+        logging.info(f"[Launch]: Minecraft版本{get_version_id(f'{appdata}/versions/{ver}/{ver}.json')}")
+        if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
+            if is_forge_ver(f"{appdata}/versions/{ver}/{ver}.json"):
+                logging.info("[Launch]: Forge版本" + get_forge_ver(f"{appdata}/versions/{ver}/{ver}.json"))
+            elif is_fabric_ver(f"{appdata}/versions/{ver}/{ver}.json"):
+                logging.info(f"[Launch]: Fabric版本" + get_fabric_ver(f'{appdata}/versions/{ver}/{ver}.json'))
+        else:  # 旧版json（< 1.13）
+            if is_forge_ver(f"{appdata}/versions/{ver}/{ver}.json"):
+                logging.info("[Launch]: Forge版本" + get_forge_ver(f"{appdata}/versions/{ver}/{ver}.json"))
 
         if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
             # 将包含artifact键的库解压到natives临时文件夹
@@ -237,8 +300,10 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         # 设置最大运行内存
         jvm += ("" + classpath + f" -Xmn{str(int(xmx.replace('m', '')) / 4).replace('.0', '') + 'm'}"
                 + " -Xmx" + xmx + ' -Dlog4j.formatMsgNoLookups=true ')
-
-        logging.info(f'[Launch]: JVM参数拼接完成')
+        if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
+            logging.info(f'[Launch]: 新版JVM参数拼接完成')
+        else:  # 旧版json（< 1.13）
+            logging.info(f'[Launch]: 旧版JVM参数拼接完成')
 
         mc_args = ''
         mc_args += ver_json["mainClass"] + " "
@@ -277,13 +342,16 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
                          .replace("--quickPlayMultiplayer ${quickPlayMultiplayer}", "")\
                          .replace("--quickPlayRealms ${quickPlayRealms}", "")  # 暂不支持
 
-        logging.info(f'[Launch]: 新版Game参数拼接完成')
-        logging.info('[Launch]: 启动参数拼接完成')
+        if is_new_json_f(f"{appdata}/versions/{ver}/{ver}.json"):  # 新版json（>= 1.13）
+            logging.info(f'[Launch]: 新版game参数拼接完成')
+        else:  # 旧版json（< 1.13）
+            logging.info(f'[Launch]: 旧版game参数拼接完成')
         final_arg = (jvm + mc_args).replace("-cp-cp", "-cp")\
                                    .replace("  -cp", " -cp")\
                                    .replace(";;", ";")\
                                    .replace("  ", " ")\
                                    .replace("-DFabricMcEmu= ", "-DFabricMcEmu=")
+        logging.info('[Launch]: 启动参数拼接完成')
         with open("Launch.bat", 'w') as l:
             l.write(final_arg)
         process = subprocess.run("Launch.bat", capture_output=True, text=True)
@@ -295,6 +363,6 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
     else:
         return -1
 
-launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Fabric 0.14.19",
+launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Forge_36.2.34",
           "J:\\xixide\\openjdk-17+35_windows-x64_bin\\jdk-17\\bin\\javaw.exe", "4096m",
           "114514", "FFFF", "FFFF")
