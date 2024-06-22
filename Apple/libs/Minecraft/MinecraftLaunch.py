@@ -54,10 +54,28 @@ def is_forge_ver(ver_json_path: str) -> bool:  # 判断一个版本是不是安�
                 return False
         else:
             logging.info('[Launch]: Json格式为旧版格式')
-            if "net.minecraftforge.fml.common.launcher.FMLTweaker" in ver_j["minecraftArguments"]:
+            if "net.minecraftforge" in ver_j["minecraftArguments"]:
                 return True
             else:
                 return False
+    except UnicodeDecodeError:
+        return -1
+
+
+def is_fabric_ver(ver_json_path: str) -> bool:  # 判断一个版本是不是安装了Fabric
+    try:
+        with open(ver_json_path) as j:
+            ver_j = json.loads(j.read())
+        if is_new_json_f(ver_json_path):
+            logging.info('[Launch]: Json格式为新版格式')
+            for a in ver_j["arguments"]["jvm"]:
+                if "FabricMc" in a:
+                    return True
+                else:
+                    return False
+        else:
+            logging.info('[Launch]: Json格式为旧版格式')
+            return False  # 开玩笑，1.13以前有Fabric吗？
     except UnicodeDecodeError:
         return -1
 
@@ -198,6 +216,13 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         for c in classpath:
             if c not in n_classpath:
                 n_classpath.append(c)
+        for c in n_classpath:
+            if exists('C:\\Program Files (x86)'):  # 64位操作系统
+                if "3.2.1" in c:
+                    n_classpath.remove(c)
+            else:  # 32位操作系统
+                if "3.2.2" in c:
+                    n_classpath.remove(c)
         cp: str = ''
         for c in n_classpath:
             cp += f"{c};"
@@ -210,7 +235,7 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         jvm = jvm.replace("-cp ", "")
         jvm += '-cp '
         # 设置最大运行内存
-        jvm += ("" + classpath + f" -Xmn{str(int(xmx.replace('m', '')) / 4).replace('.', '').replace('0', '') + 'm'}"
+        jvm += ("" + classpath + f" -Xmn{str(int(xmx.replace('m', '')) / 4).replace('.0', '') + 'm'}"
                 + " -Xmx" + xmx + ' -Dlog4j.formatMsgNoLookups=true ')
 
         logging.info(f'[Launch]: JVM参数拼接完成')
@@ -231,7 +256,7 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
             mc_args += ver_json["minecraftArguments"]
         mc_args = mc_args.replace("${auth_player_name}", username)  # 玩家名称
         mc_args = mc_args.replace("${version_name}", f"\"{ver}\"")  # 版本名称
-        mc_args = mc_args.replace("${game_directory}", '"' + appdata + '"')  # mc路径
+        mc_args = mc_args.replace("${game_directory}", f"\"{appdata}/versions/{ver}\"")  # mc路径
         mc_args = mc_args.replace("${assets_root}", '"' + appdata + "\\assets\"")  # 资源文件路径
         mc_args = mc_args.replace("${game_assets}", '"' + appdata + "\\assets\"")  # 旧版资源文件路径
         mc_args = mc_args.replace("${assets_index_name}", ver_json["assetIndex"]["id"])  # 资源索引文件名称
@@ -265,7 +290,7 @@ def launch_mc(launcher_version: str, appdata: str, ver: str, java_path: str, xmx
         if process.returncode == 0:
             logging.info("[Launch]: Minecraft正常退出")
         else:
-            logging.warning(f"[Launch]: Minecraft非正常退出，状态码为：{process.returncode}")
+            logging.warning(f"[Launch]: Minecraft非正常退出，返回值为{process.returncode}")
         return final_arg
     else:
         return -1
