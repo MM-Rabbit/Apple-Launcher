@@ -5,10 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4d1b5b89-235e-482b-8519-3e8546914044" name="更改" comment="修了点检测">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Apple/libs/Apple/AppleErrors.py" beforeDir="false" afterPath="$PROJECT_DIR$/Apple/libs/Apple/AppleErrors.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Apple/libs/Apple/AppleSettings.py" beforeDir="false" afterPath="$PROJECT_DIR$/Apple/libs/Apple/AppleSettings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Apple/libs/Minecraft/MinecraftLaunch.py" beforeDir="false" afterPath="$PROJECT_DIR$/Apple/libs/Minecraft/MinecraftLaunch.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Main.py" beforeDir="false" afterPath="$PROJECT_DIR$/Main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,6 +79,8 @@
       <workItem from="1718964762906" duration="14189000" />
       <workItem from="1719012756580" duration="8697000" />
       <workItem from="1719029287977" duration="661000" />
+      <workItem from="1719031392687" duration="489000" />
+      <workItem from="1721983672883" duration="8614000" />
     </task>
     <task id="LOCAL-00001" summary="Created the Git.">
       <created>1718882544938</created>
@@ -256,7 +259,8 @@
     <option name="LAST_COMMIT_MESSAGE" value="修了点检测" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Apple$MinecraftLaunch.coverage" NAME="MinecraftLaunch 覆盖结果" MODIFIED="1719029931745" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Apple/libs/Minecraft" />
-    <SUITE FILE_PATH="coverage/Apple$Main.coverage" NAME="Main 覆盖结果" MODIFIED="1718877605256" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Apple$MinecraftLaunch.coverage" NAME="MinecraftLaunch 覆盖结果" MODIFIED="1721988554372" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Apple/libs/Minecraft" />
+    <SUITE FILE_PATH="coverage/Apple$Main.coverage" NAME="Main 覆盖结果" MODIFIED="1721992010722" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Apple$AppleSettings.coverage" NAME="AppleSettings 覆盖结果" MODIFIED="1721990176818" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Apple/libs/Apple" />
   </component>
 </project>
