@@ -64,7 +64,7 @@ class McLauncher:
             except UnicodeDecodeError:
                 return -1
 
-        def get_forge_ver(ver_json_path: str) -> str:
+        def get_forge_ver(ver_json_path: str) -> str:  # 获取已安装Forge版本号
             try:
                 with open(ver_json_path) as j:
                     ver_j: dict = json.loads(j.read())
@@ -86,7 +86,7 @@ class McLauncher:
             except UnicodeDecodeError:
                 return -1
 
-        def get_fabric_ver(ver_json_path: str) -> str:
+        def get_fabric_ver(ver_json_path: str) -> str:  # 获取已安装Fabric版本号
             try:
                 with open(ver_json_path) as j:
                     ver_j: dict = json.loads(j.read())
@@ -123,7 +123,7 @@ class McLauncher:
             else:
                 return False
 
-        def get_version_id(ver_json_path: str) -> str:
+        def get_version_id(ver_json_path: str) -> str:  # 获取已安装Minecraft版本号
             try:
                 with open(ver_json_path) as j:
                     ver_j: dict = json.loads(j.read())
@@ -366,6 +366,7 @@ class McLauncher:
             return -1
 
 
-McLauncher.launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Forge_36.2.34",
-          "J:\\xixide\\openjdk-17+35_windows-x64_bin\\jdk-17\\bin\\javaw.exe", "4096m",
-          "114514", "FFFF", "FFFF")
+if __name__ == '__main__':
+    McLauncher.launch_mc("114", "J:\\xixide\\PCL2.4.4\\.minecraft", "1.16.5-Forge_36.2.34",
+              "J:\\xixide\\openjdk-17+35_windows-x64_bin\\jdk-17\\bin\\javaw.exe", "4096m",
+              "114514", "FFFF", "FFFF")

@@ -13,6 +13,15 @@ class Settings:
 
         self.initial_settings: dict = {
             "debug_mode": False,
+            "minecraft_dic": "./.minecraft",
+            "current_minecraft": "",
+            "javaw_path": "",
+            "max_memory": "1024m",
+            "username": "",
+            "uuid": "",
+            "access_token": "",
+            "width": "873",
+            "height": "501",
         }
 
         if not os.path.isfile("./Apple/Settings.json"):
