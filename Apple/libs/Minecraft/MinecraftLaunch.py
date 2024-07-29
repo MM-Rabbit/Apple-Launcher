@@ -354,13 +354,6 @@ class McLauncher:
                                        .replace("  ", " ")\
                                        .replace("-DFabricMcEmu= ", "-DFabricMcEmu=")
             logging.info('[Launch]: 启动参数拼接完成')
-            with open("Launch.bat", 'w') as l:
-                l.write(final_arg)
-            process = subprocess.run("Launch.bat", capture_output=True, text=True)
-            if process.returncode == 0:
-                logging.info("[Launch]: Minecraft正常退出")
-            else:
-                logging.warning(f"[Launch]: Minecraft非正常退出，返回值为{process.returncode}")
             return final_arg
         else:
             return -1

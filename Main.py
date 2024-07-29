@@ -9,13 +9,42 @@ import os
 import platform
 import sys
 import json
+import subprocess
+import threading
 
 # 第三方库
-import PyQt5
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel
 
 # Apple Launcher
 from Apple.libs.Apple import AppleSettings
 from Apple.libs.Minecraft import MinecraftLaunch
+
+
+class LauncherUI(QMainWindow):
+    def __init__(self, launch_game: any) -> None:
+        super().__init__()
+        self.load_done = False
+        self.launch_game = launch_game
+        self.initUI()
+
+    def initUI(self) -> None:
+        self.setWindowTitle("Apple Launcher")
+        self.setFixedSize(800, 450)
+        self.setStyleSheet("background-color: black;")
+
+        launch_mc: QPushButton = QPushButton("启动Minecraft", self)
+        launch_mc.setFixedSize(200, 50)
+        launch_mc.setStyleSheet("background-color: #52a435; "
+                                "border: 1px solid green; "
+                                "outline: none; "
+                                "border-radius: 5px;")
+        launch_mc.move(590, 390)
+        launch_mc.clicked.connect(self.launch_game)
+        # TODO: 添加更多按钮和功能
+        self.load_done = True
+
+    def is_loaded(self) -> bool:
+        return self.load_done
 
 
 class Launcher:
@@ -91,38 +120,42 @@ class Launcher:
         # 定义临时函数
 
         def launch_game():
-            MinecraftLaunch.McLauncher.launch_mc(self.large_version,
-                                                 self.dumped_settings["minecraft_dic"],
-                                                 self.dumped_settings["current_minecraft"],
-                                                 self.dumped_settings["javaw_path"],
-                                                 self.dumped_settings["max_memory"],
-                                                 self.dumped_settings["username"],
-                                                 self.dumped_settings["uuid"],
-                                                 self.dumped_settings["access_token"],
-                                                 self.dumped_settings["width"],
-                                                 self.dumped_settings["height"],
-                                                 )
+            final_arg: str = MinecraftLaunch.McLauncher.launch_mc(self.large_version,
+                                                                  self.dumped_settings["minecraft_dic"],
+                                                                  self.dumped_settings["current_minecraft"],
+                                                                  self.dumped_settings["javaw_path"],
+                                                                  self.dumped_settings["max_memory"],
+                                                                  self.dumped_settings["username"],
+                                                                  self.dumped_settings["uuid"],
+                                                                  self.dumped_settings["access_token"],
+                                                                  self.dumped_settings["width"],
+                                                                  self.dumped_settings["height"],
+                                                                  )
+            with open("Launch.bat", 'w') as l:
+                l.write(final_arg)
+
+            process = subprocess.Popen("Launch.bat", stdout=True, text=True)
+            return_code = process.poll()
+            if return_code is None:
+                # 子进程仍在运行
+                pass
+            else:
+                # 子进程已结束，根据返回码记录日志
+                if return_code == 0:
+                    logging.info("[Launch]: Minecraft正常退出")
+                else:
+                    logging.warning(f"[Launch]: Minecraft非正常退出，返回码为{return_code}")
 
         # 主函数实际程序块开始
 
-        root: tk.Tk = tk.Tk()
+        root: QApplication = QApplication(sys.argv)
+        l = LauncherUI(launch_game)
         logging.debug('[Main]: 创建窗体')
 
-        root.iconphoto(False, tk.PhotoImage(file='Apple/icon/icon.ico'))  # 图标
-        root.title(" ")  # 设置窗口标题
-        root.minsize(800, 450)  # 应该都看得懂吧？
-        root.geometry("800x450")
+        while not l.is_loaded(): pass
 
-        # 添加组件
-        button: tk.Button = tk.Button(root, text="启动Minecraft", command=launch_game)
-
-        # 放置组件
-        button.pack()
-
-        pywinstyles.apply_style(root, 'acrylic')  # 主题
-        pywinstyles.change_border_color(root, color="#000000")  # 边框颜色
-        root.mainloop()  # 窗体循环
-        logging.debug('[Window]: 窗体循环启动')
+        l.show()
+        sys.exit(root.exec_())
         # TODO: 启动器的主方法
 
         # ...
